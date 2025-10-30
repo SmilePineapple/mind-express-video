@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* Custom accessibility styles */
+* {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 4px solid rgb(59 130 246);
+  outline-offset: 2px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Mirror video for local stream */
+.mirror {
+  transform: scaleX(-1);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  * {
+    border-width: 2px !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

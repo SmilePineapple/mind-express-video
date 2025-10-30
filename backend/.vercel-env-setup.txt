@@ -1,0 +1,19 @@
+Run these commands to set environment variables:
+
+vercel env add PUSHER_APP_ID production
+# Enter: 2071115
+
+vercel env add PUSHER_KEY production
+# Enter: 2889a0591a3a9d50672f
+
+vercel env add PUSHER_SECRET production
+# Enter: 2c31d6a0bb6aefa628e4
+
+vercel env add PUSHER_CLUSTER production
+# Enter: eu
+
+vercel env add CORS_ORIGIN production
+# Enter: *
+
+Then redeploy:
+vercel --prod
