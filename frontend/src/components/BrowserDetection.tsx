@@ -1,14 +1,27 @@
 import { useEffect, useState } from 'react';
 
 export const BrowserDetection = () => {
-  const [isEmbedded, setIsEmbedded] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('');
 
   useEffect(() => {
-    // Check if running in an embedded browser
-    const embedded = window.self !== window.top;
-    setIsEmbedded(embedded);
     setCurrentUrl(window.location.href);
+    
+    // Check if running in an embedded browser (iframe)
+    const isEmbedded = window.self !== window.top;
+    
+    // Only show warning if embedded AND we can't access media
+    if (isEmbedded) {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(() => {
+          // Permissions granted, don't show warning
+          setShowWarning(false);
+        })
+        .catch(() => {
+          // Permissions denied in embedded browser
+          setShowWarning(true);
+        });
+    }
   }, []);
 
   const openInBrowser = () => {
@@ -16,7 +29,7 @@ export const BrowserDetection = () => {
     window.open(currentUrl, '_blank');
   };
 
-  if (!isEmbedded) {
+  if (!showWarning) {
     return null;
   }
 
