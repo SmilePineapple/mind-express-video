@@ -19,6 +19,7 @@ export const rtcConfig: RTCConfiguration = {
 
 /**
  * Media constraints for getUserMedia
+ * Echo cancellation DISABLED for Mind Express 5 TTS compatibility
  */
 export const mediaConstraints: MediaStreamConstraints = {
   video: {
@@ -27,9 +28,27 @@ export const mediaConstraints: MediaStreamConstraints = {
     frameRate: { ideal: 30 }
   },
   audio: {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true
+    echoCancellation: false,  // DISABLED for TTS audio
+    noiseSuppression: false,   // DISABLED for TTS audio
+    autoGainControl: false     // DISABLED for TTS audio
+  }
+};
+
+/**
+ * Alternative constraints to try capturing system audio (Chrome only)
+ */
+export const systemAudioConstraints: MediaStreamConstraints = {
+  video: {
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+    frameRate: { ideal: 30 }
+  },
+  audio: {
+    // @ts-ignore - Chrome experimental feature
+    chromeMediaSource: 'system',
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false
   }
 };
 
