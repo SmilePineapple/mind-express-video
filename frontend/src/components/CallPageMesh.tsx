@@ -189,6 +189,23 @@ export const CallPageMesh = () => {
           <p className="text-xs text-gray-300">{totalParticipants} participant{totalParticipants !== 1 ? 's' : ''}</p>
         </div>
 
+        {/* TTS Audio Tip */}
+        <div className="absolute bottom-24 left-6 bg-blue-600 bg-opacity-90 text-white px-6 py-4 rounded-xl backdrop-blur-sm z-10 max-w-md">
+          <div className="flex items-start gap-3">
+            <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold mb-1">Mind Express 5 TTS Tip</p>
+              <p className="text-xs leading-relaxed">
+                For TTS audio to work: Let the <strong>browser</strong> access your microphone (not ME5). 
+                ME5 TTS will play through speakers and be captured by the mic. 
+                Turn up speaker volume if needed.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Call Status Indicator */}
         {isCallActive && (
           <motion.div
