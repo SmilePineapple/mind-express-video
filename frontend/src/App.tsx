@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LoginPage } from './components/LoginPage';
-import { CallPage } from './components/CallPage';
+import { CallPageMesh } from './components/CallPageMesh';
 import { BrowserDetection } from './components/BrowserDetection';
 import './App.css';
 
@@ -11,7 +11,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LoginPage />} />
-          <Route path="/room/:licenseId" element={<CallPage />} />
+          <Route path="/room/:licenseId" element={<CallPageMesh />} />
         </Routes>
       </Router>
     </>
