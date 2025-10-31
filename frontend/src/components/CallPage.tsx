@@ -5,7 +5,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { VideoControls } from './VideoControls';
 import { WaitingRoom } from './WaitingRoom';
-import { ChatBox } from './ChatBox';
+import { LiveTranscript } from './LiveTranscript';
 
 export const CallPage = () => {
   const { licenseId } = useParams<{ licenseId: string }>();
@@ -229,10 +229,10 @@ export const CallPage = () => {
         onEndCall={handleEndCall}
       />
 
-      {/* Chat Box */}
-      <ChatBox
-        socket={socket}
-        licenseId={licenseId || ''}
+      {/* Live Transcript */}
+      <LiveTranscript
+        localStream={localStream}
+        remoteStream={remoteStream}
         nickname={nickname}
       />
     </div>

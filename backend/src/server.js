@@ -53,9 +53,9 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if room is full
-    if (roomManager.isRoomFull(licenseId)) {
-      socket.emit('error', { message: 'Room is full. Maximum 2 users per room.' });
+    // Check if room is full (max 5 users)
+    if (roomManager.getRoomSize(licenseId) >= 5) {
+      socket.emit('error', { message: 'Room is full. Maximum 5 users per room.' });
       return;
     }
 

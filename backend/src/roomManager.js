@@ -93,10 +93,10 @@ export class RoomManager {
   }
 
   /**
-   * Check if room is full (max 2 users)
+   * Check if room is full (max 5 users)
    */
   isRoomFull(licenseId) {
-    return this.getRoomSize(licenseId) >= 2;
+    return this.getRoomSize(licenseId) >= 5;
   }
 
   /**
