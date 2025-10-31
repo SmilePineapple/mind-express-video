@@ -106,16 +106,47 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
 
     const initialize = async () => {
       try {
-        // Get local media - now required for Mind Express 5
-        const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+        // Get video from camera
+        const videoStream = await navigator.mediaDevices.getUserMedia({
+          video: mediaConstraints.video,
+          audio: false
+        });
+
+        // Try to get system audio (for TTS) - Chrome/Edge only
+        let audioStream: MediaStream | null = null;
+        try {
+          // @ts-ignore - getDisplayMedia with audio captures system audio
+          audioStream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            } as any
+          });
+          console.log('System audio captured (includes TTS)');
+        } catch (audioErr) {
+          console.warn('System audio not available, using microphone:', audioErr);
+          // Fallback to microphone
+          audioStream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: mediaConstraints.audio
+          });
+        }
+
+        // Combine video and audio tracks
+        const combinedStream = new MediaStream([
+          ...videoStream.getVideoTracks(),
+          ...(audioStream?.getAudioTracks() || [])
+        ]);
         
         if (!mounted) {
-          stream.getTracks().forEach(track => track.stop());
+          combinedStream.getTracks().forEach(track => track.stop());
           return;
         }
 
-        localStreamRef = stream;
-        setLocalStream(stream);
+        localStreamRef = combinedStream;
+        setLocalStream(combinedStream);
         console.log('Local media stream initialized');
 
         // Join room
@@ -125,8 +156,8 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
         const pc = new RTCPeerConnection(rtcConfig);
 
         // Add local stream tracks to peer connection
-        stream.getTracks().forEach(track => {
-          pc.addTrack(track, stream);
+        combinedStream.getTracks().forEach(track => {
+          pc.addTrack(track, combinedStream);
           console.log('Added track to peer connection:', track.kind);
         });
 
