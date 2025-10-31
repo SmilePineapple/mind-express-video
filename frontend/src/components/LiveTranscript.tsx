@@ -1,24 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Socket } from 'socket.io-client';
 
 interface TranscriptLine {
   id: string;
   text: string;
-  speaker: 'You' | 'Remote';
+  speaker: string;
   timestamp: number;
   isFinal: boolean;
 }
 
 interface LiveTranscriptProps {
+  socket: Socket | null;
+  licenseId: string;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   nickname: string;
 }
 
-export const LiveTranscript = ({ localStream, remoteStream, nickname }: LiveTranscriptProps) => {
+export const LiveTranscript = ({ socket, licenseId, localStream, remoteStream, nickname }: LiveTranscriptProps) => {
   const [transcript, setTranscript] = useState<TranscriptLine[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [manualText, setManualText] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -51,16 +56,26 @@ export const LiveTranscript = ({ localStream, remoteStream, nickname }: LiveTran
       const newLine: TranscriptLine = {
         id: `${Date.now()}-${Math.random()}`,
         text: transcript,
-        speaker: 'You',
+        speaker: nickname,
         timestamp: Date.now(),
         isFinal
       };
 
       setTranscript(prev => {
         // Remove previous interim result for this speaker
-        const filtered = prev.filter(line => line.isFinal || line.speaker !== 'You');
+        const filtered = prev.filter(line => line.isFinal || line.speaker !== nickname);
         return [...filtered, newLine];
       });
+
+      // Send final transcript to other users
+      if (isFinal && socket) {
+        socket.emit('transcript-message', {
+          licenseId,
+          text: transcript,
+          sender: nickname,
+          timestamp: Date.now()
+        });
+      }
     };
 
     recognition.onerror = (event: any) => {
@@ -117,12 +132,64 @@ export const LiveTranscript = ({ localStream, remoteStream, nickname }: LiveTran
     }
   }, [localStream]);
 
+  // Listen for incoming transcript messages from other users
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleTranscriptMessage = (data: { text: string; sender: string; timestamp: number }) => {
+      const newLine: TranscriptLine = {
+        id: `${data.timestamp}-${Math.random()}`,
+        text: data.text,
+        speaker: data.sender,
+        timestamp: data.timestamp,
+        isFinal: true
+      };
+      setTranscript(prev => [...prev, newLine]);
+    };
+
+    socket.on('transcript-message', handleTranscriptMessage);
+
+    return () => {
+      socket.off('transcript-message', handleTranscriptMessage);
+    };
+  }, [socket]);
+
   const toggleMinimize = () => {
     setIsMinimized(!isMinimized);
   };
 
   const clearTranscript = () => {
     setTranscript([]);
+  };
+
+  const sendManualText = () => {
+    if (!manualText.trim() || !socket) return;
+
+    const newLine: TranscriptLine = {
+      id: `${Date.now()}-${Math.random()}`,
+      text: manualText.trim(),
+      speaker: nickname,
+      timestamp: Date.now(),
+      isFinal: true
+    };
+
+    setTranscript(prev => [...prev, newLine]);
+
+    socket.emit('transcript-message', {
+      licenseId,
+      text: manualText.trim(),
+      sender: nickname,
+      timestamp: Date.now()
+    });
+
+    setManualText('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendManualText();
+    }
   };
 
   if (!localStream && !remoteStream) {
@@ -149,6 +216,16 @@ export const LiveTranscript = ({ localStream, remoteStream, nickname }: LiveTran
           </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowManualInput(!showManualInput)}
+            className={`p-2 rounded-lg transition-colors ${showManualInput ? 'bg-white/30' : 'hover:bg-white/20'}`}
+            aria-label="Type text"
+            title="Type text manually"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
           {transcript.length > 0 && (
             <button
               onClick={clearTranscript}
@@ -201,7 +278,7 @@ export const LiveTranscript = ({ localStream, remoteStream, nickname }: LiveTran
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: line.isFinal ? 1 : 0.6, x: 0 }}
                     className={`p-3 rounded-xl ${
-                      line.speaker === 'You'
+                      line.speaker === nickname
                         ? 'bg-blue-100 text-blue-900'
                         : 'bg-purple-100 text-purple-900'
                     }`}
@@ -209,7 +286,7 @@ export const LiveTranscript = ({ localStream, remoteStream, nickname }: LiveTran
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <p className="text-xs font-semibold mb-1 opacity-70">
-                          {line.speaker === 'You' ? nickname : 'Remote'}
+                          {line.speaker}
                         </p>
                         <p className={`text-base ${!line.isFinal && 'italic'}`}>
                           {line.text}
@@ -227,6 +304,34 @@ export const LiveTranscript = ({ localStream, remoteStream, nickname }: LiveTran
               )}
               <div ref={transcriptEndRef} />
             </div>
+
+            {/* Manual Text Input */}
+            {showManualInput && (
+              <div className="p-4 bg-white border-t border-gray-200">
+                <p className="text-xs text-gray-600 mb-2">Type text manually (for Mind Express 5):</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualText}
+                    onChange={(e) => setManualText(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Type your message..."
+                    className="flex-1 px-4 py-3 text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:border-blue-500"
+                    aria-label="Manual text input"
+                  />
+                  <button
+                    onClick={sendManualText}
+                    disabled={!manualText.trim()}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Send text"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

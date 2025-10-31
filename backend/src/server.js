@@ -163,6 +163,18 @@ io.on('connection', (socket) => {
       timestamp
     });
   });
+
+  // Transcript message (for live transcription)
+  socket.on('transcript-message', ({ licenseId, text, sender, timestamp }) => {
+    console.log(`Transcript from ${sender} in room ${licenseId}: ${text}`);
+    
+    // Broadcast to all other users in the room
+    socket.to(licenseId).emit('transcript-message', {
+      text,
+      sender,
+      timestamp
+    });
+  });
 });
 
 // Clean up inactive rooms every 5 minutes

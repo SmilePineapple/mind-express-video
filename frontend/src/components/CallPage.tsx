@@ -231,6 +231,8 @@ export const CallPage = () => {
 
       {/* Live Transcript */}
       <LiveTranscript
+        socket={socket}
+        licenseId={licenseId || ''}
         localStream={localStream}
         remoteStream={remoteStream}
         nickname={nickname}
