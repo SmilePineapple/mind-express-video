@@ -5,6 +5,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useWebRTCMesh } from '../hooks/useWebRTCMesh';
 import { VideoControls } from './VideoControls';
 import { WaitingRoom } from './WaitingRoom';
+import { AudioLevelIndicator } from './AudioLevelIndicator';
 
 export const CallPageMesh = () => {
   const { licenseId } = useParams<{ licenseId: string }>();
@@ -175,6 +176,11 @@ export const CallPageMesh = () => {
             <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
               <p className="text-sm font-semibold">{nickname} (You)</p>
             </div>
+
+            {/* Audio Level Indicator */}
+            <div className="absolute top-4 left-4">
+              <AudioLevelIndicator stream={localStream} label="Your Mic" />
+            </div>
           </motion.div>
 
           {/* Remote Videos */}
@@ -268,6 +274,11 @@ const RemoteVideo = ({ peer, index }: RemoteVideoProps) => {
       {/* Name Badge */}
       <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
         <p className="text-sm font-semibold">{peer.nickname}</p>
+      </div>
+
+      {/* Audio Level Indicator */}
+      <div className="absolute top-4 left-4">
+        <AudioLevelIndicator stream={peer.stream} label={peer.nickname} />
       </div>
     </motion.div>
   );
