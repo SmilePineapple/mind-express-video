@@ -106,47 +106,25 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
 
     const initialize = async () => {
       try {
-        // Get video from camera
-        const videoStream = await navigator.mediaDevices.getUserMedia({
-          video: mediaConstraints.video,
-          audio: false
-        });
-
-        // Try to get system audio (for TTS) - Chrome/Edge only
-        let audioStream: MediaStream | null = null;
+        // Try to get camera and microphone, but allow joining without them
+        let stream: MediaStream;
+        
         try {
-          // @ts-ignore - getDisplayMedia with audio captures system audio
-          audioStream = await navigator.mediaDevices.getDisplayMedia({
-            video: false,
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false
-            } as any
-          });
-          console.log('System audio captured (includes TTS)');
-        } catch (audioErr) {
-          console.warn('System audio not available, using microphone:', audioErr);
-          // Fallback to microphone
-          audioStream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: mediaConstraints.audio
-          });
+          stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+          console.log('Camera and microphone access granted');
+        } catch (err) {
+          console.warn('Camera/microphone not available (may be in use by Mind Express 5), joining as viewer:', err);
+          // Create empty stream to allow joining without media
+          stream = new MediaStream();
         }
-
-        // Combine video and audio tracks
-        const combinedStream = new MediaStream([
-          ...videoStream.getVideoTracks(),
-          ...(audioStream?.getAudioTracks() || [])
-        ]);
         
         if (!mounted) {
-          combinedStream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach(track => track.stop());
           return;
         }
 
-        localStreamRef = combinedStream;
-        setLocalStream(combinedStream);
+        localStreamRef = stream;
+        setLocalStream(stream);
         console.log('Local media stream initialized');
 
         // Join room
@@ -155,11 +133,15 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
         // Create peer connection
         const pc = new RTCPeerConnection(rtcConfig);
 
-        // Add local stream tracks to peer connection
-        combinedStream.getTracks().forEach(track => {
-          pc.addTrack(track, combinedStream);
-          console.log('Added track to peer connection:', track.kind);
-        });
+        // Add local stream tracks to peer connection (if any)
+        if (stream.getTracks().length > 0) {
+          stream.getTracks().forEach(track => {
+            pc.addTrack(track, stream);
+            console.log('Added track to peer connection:', track.kind);
+          });
+        } else {
+          console.log('No local tracks - joining as viewer only');
+        }
 
         // Handle incoming remote stream
         pc.ontrack = (event) => {
@@ -199,7 +181,7 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
       } catch (err) {
         console.error('Initialization error:', err);
         if (mounted) {
-          setError('Camera/microphone access denied. Please enable permissions and refresh.');
+          setError('Failed to initialize connection. Please refresh and try again.');
         }
       }
     };
