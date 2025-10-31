@@ -189,7 +189,7 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
         remoteSocketIdRef.current = users[0].socketId;
         setIsWaiting(false);
         
-        // Create offer
+        // NEW USER creates offer when joining existing users
         try {
           const offer = await peerConnectionRef.current.createOffer();
           await peerConnectionRef.current.setLocalDescription(offer);
@@ -209,20 +209,8 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
       remoteSocketIdRef.current = data.socketId;
       setIsWaiting(false);
       
-      // Create offer
-      if (peerConnectionRef.current) {
-        try {
-          const offer = await peerConnectionRef.current.createOffer();
-          await peerConnectionRef.current.setLocalDescription(offer);
-          socket.emit('offer', {
-            licenseId,
-            offer,
-            targetSocketId: data.socketId
-          });
-        } catch (err) {
-          console.error('Error creating offer:', err);
-        }
-      }
+      // EXISTING USER waits for offer from new user (don't create offer here)
+      console.log('Waiting for offer from new user...');
     };
 
     const handleOfferReceived = async (data: { offer: RTCSessionDescriptionInit; socketId: string }) => {
@@ -248,7 +236,12 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
       console.log('Received answer from:', data.socketId);
       if (peerConnectionRef.current) {
         try {
-          await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+          // Only set remote description if we're in the right state
+          if (peerConnectionRef.current.signalingState === 'have-local-offer') {
+            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+          } else {
+            console.warn('Ignoring answer - wrong signaling state:', peerConnectionRef.current.signalingState);
+          }
         } catch (err) {
           console.error('Error handling answer:', err);
         }
