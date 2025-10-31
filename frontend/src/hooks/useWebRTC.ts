@@ -106,29 +106,43 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
 
     const initialize = async () => {
       try {
-        // Get local media
-        const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+        // Try to get local media, but don't fail if denied
+        let stream: MediaStream | null = null;
+        
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+          console.log('Local media stream initialized');
+        } catch (mediaErr) {
+          console.warn('Camera/microphone access denied, joining without media:', mediaErr);
+          // Create empty stream so we can still join
+          stream = new MediaStream();
+        }
         
         if (!mounted) {
-          stream.getTracks().forEach(track => track.stop());
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+          }
           return;
         }
 
         localStreamRef = stream;
         setLocalStream(stream);
-        console.log('Local media stream initialized');
 
-        // Join room
+        // Join room (even without camera/mic)
         socket.emit('join-room', { licenseId, nickname });
 
         // Create peer connection
         const pc = new RTCPeerConnection(rtcConfig);
 
-        // Add local stream tracks to peer connection
-        stream.getTracks().forEach(track => {
-          pc.addTrack(track, stream);
-          console.log('Added track to peer connection:', track.kind);
-        });
+        // Add local stream tracks to peer connection (if any)
+        if (stream && stream.getTracks().length > 0) {
+          stream.getTracks().forEach(track => {
+            pc.addTrack(track, stream);
+            console.log('Added track to peer connection:', track.kind);
+          });
+        } else {
+          console.log('No local tracks to add - joining as viewer only');
+        }
 
         // Handle incoming remote stream
         pc.ontrack = (event) => {
@@ -168,7 +182,7 @@ export const useWebRTC = ({ socket, licenseId, nickname }: UseWebRTCProps): UseW
       } catch (err) {
         console.error('Initialization error:', err);
         if (mounted) {
-          setError('Camera/microphone access denied. Please enable permissions and refresh.');
+          setError('Failed to initialize. Please refresh and try again.');
         }
       }
     };
