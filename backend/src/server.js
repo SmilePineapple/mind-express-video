@@ -151,6 +151,18 @@ io.on('connection', (socket) => {
     socket.leave(licenseId);
     roomManager.removeUserFromRoom(licenseId, socket.id);
   });
+
+  // Chat message
+  socket.on('chat-message', ({ licenseId, text, sender, timestamp }) => {
+    console.log(`Chat message from ${sender} in room ${licenseId}: ${text}`);
+    
+    // Broadcast to all other users in the room
+    socket.to(licenseId).emit('chat-message', {
+      text,
+      sender,
+      timestamp
+    });
+  });
 });
 
 // Clean up inactive rooms every 5 minutes

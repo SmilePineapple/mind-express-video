@@ -5,6 +5,7 @@ import { useSocket } from '../hooks/useSocket';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { VideoControls } from './VideoControls';
 import { WaitingRoom } from './WaitingRoom';
+import { ChatBox } from './ChatBox';
 
 export const CallPage = () => {
   const { licenseId } = useParams<{ licenseId: string }>();
@@ -226,6 +227,13 @@ export const CallPage = () => {
         onToggleMute={toggleMute}
         onToggleVideo={toggleVideo}
         onEndCall={handleEndCall}
+      />
+
+      {/* Chat Box */}
+      <ChatBox
+        socket={socket}
+        licenseId={licenseId || ''}
+        nickname={nickname}
       />
     </div>
   );
