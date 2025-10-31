@@ -7,10 +7,10 @@ interface AudioLevelIndicatorProps {
 
 export const AudioLevelIndicator = ({ stream, label }: AudioLevelIndicatorProps) => {
   const [level, setLevel] = useState(0);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (!stream) {
+    if (!stream || stream.getAudioTracks().length === 0) {
       setLevel(0);
       return;
     }
